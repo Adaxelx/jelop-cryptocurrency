@@ -1,5 +1,11 @@
 # Jelop crypto
 
+## Jak odpalać
+
+```
+PEERS='[{"port":3000,"publicKey":"3052301006072a8648ce3d020106052b8104001a033e000400c5c0dedd80dea3462556520d7187209a27021bb5018b1482af69793fdc003d4391a226ebacefa93b419ca2e69f21f6c65564103fea89d2c0ebfc79"}]' P2P_PORT=3001 npm run dev
+```
+
 ## Orientacyjny harmonogram
 
 ### Sieć peer-to-peer (10p) - 3 tyg. (termin oddania: 25.10.2023),
