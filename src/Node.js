@@ -13,60 +13,37 @@ export default class Node {
   #privateKey
   #validationMessages
 
-  constructor() {
-    const {privateKey, publicKey} = crypto.generateKeyPairSync('ec', {
-      namedCurve: 'sect239k1',
-      publicKeyEncoding: {
-        type: 'spki',
-        format: 'der', // Use DER encoding for elliptic curve keys
-      },
-      privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem',
-      },
-    })
-
-    this.publicKey = getPublicKeyToHex(publicKey)
-    this.#privateKey = privateKey
+  constructor(wallet) {
     this.port = P2P_PORT
-    this.knownNodes = this.parseKnownNodes()
+    this.wallet = wallet
+    this.knownNodes = []
     this.#validationMessages = {}
-  }
-
-  parseKnownNodes() {
-    let knownNodes
-    try {
-      knownNodes = JSON.parse(process.env.PEERS.toString())
-    } catch {
-      knownNodes = []
-    }
-
-    return knownNodes
   }
 
   run() {
     const server = new WebSocketServer({port: P2P_PORT})
     server.on('connection', socket => this.connectSocket(socket))
-
-    this.connectKnownNodes()
   }
 
   connectSocket(socket) {
-    console.log('Socket connected')
+    console.log(`Socket connected to you!`)
     this.messageHandler(socket)
-
-    this.knownNodes.forEach(({socket, ...data}) => {
-      socket.send(
-        JSON.stringify({
-          payload: {publicKey: this.publicKey, port: this.port},
-          type: 'connect',
-        }),
-      )
-    })
+    // console.log(
+    //   'known:',
+    //   this.knownNodes.map(({socket, publicKey, ...data}) => data),
+    // )
+    // this.knownNodes.forEach(({socket, ...data}) => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       payload: {publicKey: this.wallet.publicKey, port: this.port},
+    //       type: 'connect',
+    //     }),
+    //   )
+    // })
   }
 
   messageHandler(socket) {
-    socket.on('message', message => {
+    socket.on('message', async message => {
       const parsedMessage = JSON.parse(message)
 
       if (parsedMessage.type === 'requestSign') {
@@ -79,28 +56,44 @@ export default class Node {
         return
       } else if (parsedMessage.type === 'connect') {
         const {payload: data} = parsedMessage
-        if (this.knownNodes.some(node => node.port == data.port)) return
-        this.knownNodes.push({...data, socket})
-        this.knownNodes.forEach(({socket: knownSocket, ...rest}) => {
-          knownSocket.send(JSON.stringify({payload: data, type: 'connect'}))
-          socket.send(JSON.stringify({payload: rest, type: 'connect'}))
-        })
+        if (
+          this.knownNodes.some(node => node.port == data.port) ||
+          data.port === this.port
+        )
+          return
 
-        // console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
+        // this.knownNodes.push({...data, socket})
+        // this.knownNodes.forEach(({socket: knownSocket, ...rest}) => {
+        //   knownSocket.send(JSON.stringify({payload: data, type: 'connect'}))
+        //   socket.send(JSON.stringify({payload: rest, type: 'connect'}))
+        // })
+        // console.log(data, this.port)
+        await this.connectToNode(data.port, data.publicKey)
+
+        console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
         return
       }
       throw new Error('Unhandled message')
     })
   }
 
-  connectKnownNodes() {
-    this.knownNodes = this.knownNodes.map(peer => {
-      const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${peer.port}`)
-
-      socket.on('open', () => this.connectSocket(socket))
-
-      return {...peer, socket}
+  async connectToNode(port, publicKey) {
+    const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${port}`)
+    socket.on('open', () => {
+      console.log(`You connected to socket ${port}!`)
+      this.knownNodes.forEach(({socket: knownSocket, ...rest}) => {
+        socket.send(JSON.stringify({payload: rest, type: 'connect'}))
+      })
+      socket.send(
+        JSON.stringify({
+          payload: {port: this.port, publicKey: this.wallet.publicKey},
+          type: 'connect',
+        }),
+      )
     })
+
+    if (this.knownNodes.some(node => node.port == port)) return
+    this.knownNodes.push({port, publicKey, socket})
   }
 
   // 1. Wysyłasz wiadomość zwykłą jakąś
@@ -116,7 +109,7 @@ export default class Node {
     node.socket.send(
       JSON.stringify({
         type: 'requestSign',
-        payload: {message, requestedFrom: this.publicKey},
+        payload: {message, requestedFrom: this.wallet.publicKey},
       }),
     )
   }
@@ -126,7 +119,7 @@ export default class Node {
     const sign = createSign('SHA256')
     sign.write(message)
     sign.end()
-    const signature = sign.sign(this.#privateKey, 'hex')
+    const signature = sign.sign(this.wallet.getPrivateKey(), 'hex')
     const node = this.knownNodes.find(
       ({publicKey}) => publicKey === requestedFrom,
     )
@@ -134,7 +127,7 @@ export default class Node {
     node.socket.send(
       JSON.stringify({
         type: 'responseSign',
-        payload: {signature, responseFrom: this.publicKey},
+        payload: {signature, responseFrom: this.wallet.publicKey},
       }),
     )
   }
@@ -162,10 +155,6 @@ export default class Node {
       console.log('verify failure')
     }
   }
-}
-
-const getPublicKeyToHex = publicKey => {
-  return publicKey.toString('hex')
 }
 
 const toHex = obj => {
