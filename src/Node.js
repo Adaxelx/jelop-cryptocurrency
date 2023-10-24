@@ -28,18 +28,6 @@ export default class Node {
   connectSocket(socket) {
     console.log(`Socket connected to you!`)
     this.messageHandler(socket)
-    // console.log(
-    //   'known:',
-    //   this.knownNodes.map(({socket, publicKey, ...data}) => data),
-    // )
-    // this.knownNodes.forEach(({socket, ...data}) => {
-    //   socket.send(
-    //     JSON.stringify({
-    //       payload: {publicKey: this.wallet.publicKey, port: this.port},
-    //       type: 'connect',
-    //     }),
-    //   )
-    // })
   }
 
   messageHandler(socket) {
@@ -48,9 +36,11 @@ export default class Node {
 
       if (parsedMessage.type === 'requestSign') {
         //handle validation
+        console.log('request')
         this.responseToValidation(parsedMessage.payload)
         return
       } else if (parsedMessage.type === 'responseSign') {
+        console.log('response')
         //handle validation
         this.handleResponseValidation(parsedMessage.payload)
         return
@@ -61,13 +51,6 @@ export default class Node {
           data.port === this.port
         )
           return
-
-        // this.knownNodes.push({...data, socket})
-        // this.knownNodes.forEach(({socket: knownSocket, ...rest}) => {
-        //   knownSocket.send(JSON.stringify({payload: data, type: 'connect'}))
-        //   socket.send(JSON.stringify({payload: rest, type: 'connect'}))
-        // })
-        // console.log(data, this.port)
         await this.connectToNode(data.port, data.publicKey)
 
         console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
@@ -77,7 +60,7 @@ export default class Node {
     })
   }
 
-  async connectToNode(port, publicKey) {
+  connectToNode(port, publicKey) {
     const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${port}`)
     socket.on('open', () => {
       console.log(`You connected to socket ${port}!`)
@@ -106,6 +89,7 @@ export default class Node {
       ...this.#validationMessages,
       [node.publicKey]: message,
     }
+    console.log({message, requestedFrom: this.wallet.publicKey})
     node.socket.send(
       JSON.stringify({
         type: 'requestSign',
@@ -123,7 +107,12 @@ export default class Node {
     const node = this.knownNodes.find(
       ({publicKey}) => publicKey === requestedFrom,
     )
-    if (!node) return
+
+    console.log(node)
+    if (!node)
+      return console.log(
+        `Node with public key: ${requestedFrom} not found. Validation stopped.`,
+      )
     node.socket.send(
       JSON.stringify({
         type: 'responseSign',
@@ -150,25 +139,11 @@ export default class Node {
         'hex',
       )
     ) {
-      console.log('verify success')
+      console.log('Verify success')
     } else {
-      console.log('verify failure')
+      console.log('Verify failure')
     }
   }
-}
-
-const toHex = obj => {
-  const str = JSON.stringify(obj)
-  return '0x' + [...str].map((c, i) => str.charCodeAt(i).toString(16)).join('')
-}
-
-function hexToAscii(str1) {
-  const hex = str1.toString()
-  let str = ''
-  for (let n = 0; n < hex.length; n += 2) {
-    str += String.fromCharCode(parseInt(hex.substr(n, 2), 16))
-  }
-  return str
 }
 
 // TODO:
