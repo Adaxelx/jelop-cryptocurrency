@@ -19,9 +19,9 @@ export default class Runner {
   async promptForOptions() {
     console.table({
       'Create wallet': {value: 1},
-
       'Connect to node': {value: 2},
       'Validate node': {value: 3},
+      'Show wallet': {value: 4},
     })
     this.terminal.question('Please input value: ', async value => {
       this.#selectedOption = value
@@ -43,6 +43,10 @@ export default class Runner {
 
         break
       case '2':
+        if (!this.node) {
+          console.log('You need to have a wallet to make a connection!')
+          break
+        }
         this.terminal.question('Enter port: ', port => {
           this.terminal.question('Enter public key of node: ', publicKey => {
             this.node.connectToNode(port, publicKey)
@@ -54,9 +58,15 @@ export default class Runner {
       case '3': {
         this.terminal.question('Enter port: ', port => {
           const node = this.node.knownNodes.find(node => node.port === port)
-          console.log(node)
           this.node.requestValidation(node)
         })
+      }
+      case '4': {
+        if (!this.node) {
+          console.log('You need to have a wallet to show it!')
+          break
+        }
+        this.node.wallet.show()
       }
       default:
         break
