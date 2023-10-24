@@ -35,8 +35,6 @@ export default class Runner {
     switch (this.#selectedOption) {
       case '1':
         // upload your wallet
-        console.log('case 1')
-
         const wallet = new Wallet()
         this.node = new Node(wallet)
         this.node.run()
@@ -53,7 +51,6 @@ export default class Runner {
           })
         })
 
-        console.log('case 2')
         break
       case '3': {
         this.terminal.question('Enter port: ', port => {
