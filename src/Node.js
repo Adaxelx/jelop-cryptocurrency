@@ -63,7 +63,7 @@ export default class Node {
   connectToNode(port, publicKey) {
     const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${port}`)
     socket.on('open', () => {
-      console.log(`You connected to socket ${port}!`)
+      console.log(`You connected to node ${port}`)
       this.knownNodes.forEach(({socket: knownSocket, ...rest}) => {
         socket.send(JSON.stringify({payload: rest, type: 'connect'}))
       })
@@ -89,7 +89,6 @@ export default class Node {
       ...this.#validationMessages,
       [node.publicKey]: message,
     }
-    console.log({message, requestedFrom: this.wallet.publicKey})
     node.socket.send(
       JSON.stringify({
         type: 'requestSign',
@@ -108,7 +107,6 @@ export default class Node {
       ({publicKey}) => publicKey === requestedFrom,
     )
 
-    console.log(node)
     if (!node)
       return console.log(
         `Node with public key: ${requestedFrom} not found. Validation stopped.`,

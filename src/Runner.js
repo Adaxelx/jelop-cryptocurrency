@@ -26,7 +26,7 @@ export default class Runner {
     this.terminal.question('Please input value: ', async value => {
       this.#selectedOption = value
       await this.handleStart()
-      this.promptForOptions()
+      await this.promptForOptions()
     })
   }
 
@@ -53,6 +53,10 @@ export default class Runner {
 
         break
       case '3': {
+        if (!this.node) {
+          console.log('You need to create wallet first to validate any node!')
+          break
+        }
         this.terminal.question('Enter port: ', port => {
           const node = this.node.knownNodes.find(node => node.port === port)
           this.node.requestValidation(node)

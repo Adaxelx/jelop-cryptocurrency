@@ -13,7 +13,7 @@ class Wallet {
         namedCurve: 'sect239k1',
         publicKeyEncoding: {
           type: 'spki',
-          format: 'der', // Use DER encoding for elliptic curve keys
+          format: 'der',
         },
         privateKeyEncoding: {
           type: 'pkcs8',
