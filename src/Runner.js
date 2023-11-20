@@ -81,7 +81,7 @@ export default class Runner {
             this.terminal.question('amount: ', amount => {
               const block = new Block(Date.now().toString(), {from, to, amount})
               this.node.blockchain.addBlock(block)
-              // this.node.sendBlockToPeers(block) // todo
+              this.node.sendBlockToPeers(block)
             })
           })
         })

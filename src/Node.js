@@ -7,6 +7,7 @@ import crypto, {
 } from 'crypto'
 import WebSocket, {WebSocketServer} from 'ws'
 import Blockchain from './Blockchain.js'
+import Block from './Block.js'
 
 const P2P_PORT = process.env.P2P_PORT || '3000'
 
@@ -72,15 +73,22 @@ export default class Node {
         console.log('blockchain received and synchronized ⛓️')
         return
       } else if (parsedMessage.type === 'addBlock') {
-        const {payload: data} = parsedMessage
-        if (
-          this.knownNodes.some(node => node.port == data.port) ||
-          data.port === this.port
-        )
-          return
-        await this.connectToNode(data.port, data.publicKey)
+        const {
+          payload: {port, block, publicKey},
+        } = parsedMessage
 
-        console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
+        // TODO: uncomment after public key moved to sockets
+        // if (
+        //   !this.knownNodes.some(
+        //     node => node.port == data.port && node.publicKey === publicKey,
+        //   )
+        // ) {
+        //   return
+        // }
+
+        this.blockchain.addBlock(new Block(block.timestamp, block.data))
+        this.blockchain.isValid()
+        console.log('added block to blockchain, blockchain is synchronized ⛓️')
         return
       }
       throw new Error('Unhandled message')
@@ -189,6 +197,21 @@ export default class Node {
     } else {
       console.log('Verify failure')
     }
+  }
+
+  sendBlockToPeers(block) {
+    this.knownNodes.forEach(({socket}) => {
+      socket.send(
+        JSON.stringify({
+          type: 'addBlock',
+          payload: {
+            port: this.port,
+            publicKey: this.wallet.publicKey,
+            block,
+          },
+        }),
+      )
+    })
   }
 }
 

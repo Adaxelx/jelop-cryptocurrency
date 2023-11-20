@@ -1,7 +1,7 @@
 import Block from './Block.js'
 
 export default class Blockchain {
-  constructor(difficulty = 1, chain = [new Block(Date.now().toString())]) {
+  constructor(difficulty = 6, chain = [new Block(Date.now().toString())]) {
     this.chain = chain
     this.difficulty = difficulty
     console.log(this.toString())
@@ -17,6 +17,16 @@ export default class Blockchain {
     block.mine(this.difficulty)
 
     this.chain.push(Object.freeze(block))
+    console.log(this.toString())
+  }
+
+  // TODO
+  syncBlockchain(block) {
+    console.log(Object.freeze(block))
+    this.chain.push(Object.freeze(block))
+    if (!this.isValid()) {
+      this.chain.pop()
+    }
   }
 
   isValid(blockchain = this) {
