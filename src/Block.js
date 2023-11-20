@@ -1,27 +1,33 @@
-const crypto = require('crypto'),
-  SHA256 = message => crypto.createHash('sha256').update(message).digest('hex')
+import {createHash} from 'crypto'
+
+const SHA256 = message => createHash('sha256').update(message).digest('hex')
 
 export default class Block {
   constructor(timestamp = '', data = []) {
     this.timestamp = timestamp
     this.data = data
     this.hash = this.getHash()
-    this.prevHash = '' // previous block's hash
+    this.prevHash = ''
+    this.nonce = 0
   }
 
-  // Our hash function.
   getHash() {
-    return SHA256(this.prevHash + this.timestamp + JSON.stringify(this.data))
+    return SHA256(
+      this.prevHash + this.timestamp + JSON.stringify(this.data) + this.nonce,
+    )
   }
 
   mine(difficulty) {
-    // Basically, it loops until our hash starts with
-    // the string 0...000 with length of <difficulty>.
+    console.log('⛏️mining...')
     while (!this.hash.startsWith(Array(difficulty + 1).join('0'))) {
-      // We increases our nonce so that we can get a whole different hash.
       this.nonce++
-      // Update our new hash with the new nonce value.
+
       this.hash = this.getHash()
     }
+    console.log('✅mining completed')
+  }
+
+  toString() {
+    return JSON.stringify(this, null, 2)
   }
 }

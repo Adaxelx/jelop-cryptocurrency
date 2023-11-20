@@ -1,6 +1,7 @@
 import readlineSync from 'readline'
 import Wallet from './Wallet.js'
 import Node from './Node.js'
+import Block from './Block.js'
 export default class Runner {
   #selectedOption
   constructor() {
@@ -22,6 +23,7 @@ export default class Runner {
       'Connect to node': {value: 2},
       'Validate node': {value: 3},
       'Show wallet': {value: 4},
+      'Add block': {value: 5},
     })
     this.terminal.question('Please input value: ', async value => {
       this.#selectedOption = value
@@ -47,7 +49,7 @@ export default class Runner {
         }
         this.terminal.question('Enter port: ', port => {
           this.terminal.question('Enter public key of node: ', publicKey => {
-            this.node.connectToNode(port, publicKey)
+            this.node.connectToNode(port, publicKey, true)
           })
         })
 
@@ -68,6 +70,21 @@ export default class Runner {
           break
         }
         this.node.wallet.show()
+      }
+      case '5': {
+        if (!this.node) {
+          console.log('You need to have a wallet to add block!')
+          break
+        }
+        this.terminal.question('From: ', from => {
+          this.terminal.question('to: ', to => {
+            this.terminal.question('amount: ', amount => {
+              const block = new Block(Date.now().toString(), {from, to, amount})
+              this.node.blockchain.addBlock(block)
+              // this.node.sendBlockToPeers(block) // todo
+            })
+          })
+        })
       }
       default:
         break

@@ -6,6 +6,7 @@ import crypto, {
   createPublicKey,
 } from 'crypto'
 import WebSocket, {WebSocketServer} from 'ws'
+import Blockchain from './Blockchain.js'
 
 const P2P_PORT = process.env.P2P_PORT || '3000'
 
@@ -18,6 +19,7 @@ export default class Node {
     this.wallet = wallet
     this.knownNodes = []
     this.#validationMessages = {}
+    this.blockchain = new Blockchain()
   }
 
   run() {
@@ -33,18 +35,43 @@ export default class Node {
   messageHandler(socket) {
     socket.on('message', async message => {
       const parsedMessage = JSON.parse(message)
-
+      console.log(parsedMessage)
       if (parsedMessage.type === 'requestSign') {
         //handle validation
         console.log('request')
         this.responseToValidation(parsedMessage.payload)
         return
       } else if (parsedMessage.type === 'responseSign') {
-        console.log('response')
         //handle validation
         this.handleResponseValidation(parsedMessage.payload)
         return
       } else if (parsedMessage.type === 'connect') {
+        const {payload: data} = parsedMessage
+        if (
+          this.knownNodes.some(node => node.port == data.port) ||
+          data.port === this.port
+        )
+          return
+        await this.connectToNode(
+          data.port,
+          data.publicKey,
+          false,
+          data.withBlockchain,
+        )
+
+        console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
+        return
+      } else if (parsedMessage.type === 'sendBlockchain') {
+        const {payload: data} = parsedMessage
+
+        this.blockchain = new Blockchain(
+          data.blockchain.difficulty,
+          data.blockchain.chain,
+        )
+        console.log('new blockchain', this.blockchain.toString())
+        console.log('blockchain received and synchronized ⛓️')
+        return
+      } else if (parsedMessage.type === 'addBlock') {
         const {payload: data} = parsedMessage
         if (
           this.knownNodes.some(node => node.port == data.port) ||
@@ -60,7 +87,12 @@ export default class Node {
     })
   }
 
-  connectToNode(port, publicKey) {
+  connectToNode(
+    port,
+    publicKey,
+    isInitialConnection = false,
+    shouldConnectToBlockchain = false,
+  ) {
     const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${port}`)
     socket.on('open', () => {
       console.log(`You connected to node ${port}`)
@@ -69,10 +101,26 @@ export default class Node {
       })
       socket.send(
         JSON.stringify({
-          payload: {port: this.port, publicKey: this.wallet.publicKey},
+          payload: {
+            port: this.port,
+            publicKey: this.wallet.publicKey,
+            withBlockchain: isInitialConnection,
+          },
           type: 'connect',
         }),
       )
+      if (shouldConnectToBlockchain) {
+        socket.send(
+          JSON.stringify({
+            payload: {
+              port: this.port,
+              publicKey: this.wallet.publicKey,
+              blockchain: this.blockchain,
+            },
+            type: 'sendBlockchain',
+          }),
+        )
+      }
     })
 
     if (this.knownNodes.some(node => node.port == port)) return
