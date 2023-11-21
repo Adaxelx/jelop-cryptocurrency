@@ -36,7 +36,6 @@ export default class Node {
   messageHandler(socket) {
     socket.on('message', async message => {
       const parsedMessage = JSON.parse(message)
-      console.log(parsedMessage)
       if (parsedMessage.type === 'requestSign') {
         //handle validation
         console.log('request')
@@ -51,16 +50,18 @@ export default class Node {
         if (
           this.knownNodes.some(node => node.port == data.port) ||
           data.port === this.port
-        )
+        ) {
           return
-        await this.connectToNode(
-          data.port,
-          data.publicKey,
-          false,
-          data.withBlockchain,
-        )
+        }
+        const {port, publicKey, withBlockchain} = data
 
-        console.log(this.knownNodes.map(({socket, publicKey, ...data}) => data))
+        await this.connectToNode({
+          port,
+          publicKey,
+          shouldConnectToBlockchain: withBlockchain,
+        })
+
+        console.log(this.knownNodes.map(({socket, ...data}) => data))
         return
       } else if (parsedMessage.type === 'sendBlockchain') {
         const {payload: data} = parsedMessage
@@ -69,8 +70,7 @@ export default class Node {
           data.blockchain.difficulty,
           data.blockchain.chain,
         )
-        console.log('new blockchain', this.blockchain.toString())
-        console.log('blockchain received and synchronized ⛓️')
+
         return
       } else if (parsedMessage.type === 'addBlock') {
         const {
@@ -78,15 +78,17 @@ export default class Node {
         } = parsedMessage
 
         // TODO: uncomment after public key moved to sockets
-        // if (
-        //   !this.knownNodes.some(
-        //     node => node.port == data.port && node.publicKey === publicKey,
-        //   )
-        // ) {
-        //   return
-        // }
+        if (
+          !this.knownNodes.some(
+            node => node.port == port && node.publicKey === publicKey,
+          )
+        ) {
+          return
+        }
 
-        this.blockchain.addBlock(new Block(block.timestamp, block.data))
+        this.blockchain.syncBlockchain(
+          new Block(block.timestamp, block.data, block.prevHash, block.nonce),
+        )
         this.blockchain.isValid()
         console.log('added block to blockchain, blockchain is synchronized ⛓️')
         return
@@ -95,12 +97,12 @@ export default class Node {
     })
   }
 
-  connectToNode(
+  connectToNode({
     port,
-    publicKey,
     isInitialConnection = false,
     shouldConnectToBlockchain = false,
-  ) {
+    publicKey,
+  }) {
     const socket = new WebSocket(`${process.env.WS_DEFAULT_HOST}${port}`)
     socket.on('open', () => {
       console.log(`You connected to node ${port}`)
@@ -132,7 +134,10 @@ export default class Node {
     })
 
     if (this.knownNodes.some(node => node.port == port)) return
-    this.knownNodes.push({port, publicKey, socket})
+    if (!publicKey || !port || !socket) {
+      return
+    }
+    this.knownNodes.push({port, socket, publicKey})
   }
 
   // 1. Wysyłasz wiadomość zwykłą jakąś

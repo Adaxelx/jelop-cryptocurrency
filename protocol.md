@@ -2,82 +2,108 @@
 
 ## Opis
 
-Protokół komunikacyjny używany w systemie blockchain służy do wymiany informacji
-między węzłami w sieci. Poniżej przedstawiono główne rodzaje połączeń
-obsługiwanych przez `messageHandler`.
+Protokół komunikacyjny JELOP COIN
 
-## Połączenia
+## Możliwe komunikaty
 
-1. **Request Sign (Żądanie Podpisu)**
+1. **requestSign (Żądanie Podpisu)**
 
-   - **Opis:** Obsługuje żądania podpisu transakcji.
+   - **Opis:** Wywołuje rządanie weryfikacji tożsamości przez wskazany węzeł
    - **Przykład użycia:**
      ```json
      {
        "type": "requestSign",
        "payload": {
-         "transactionData": {
-           "sender": "0xabcdef",
-           "recipient": "0x123456",
-           "amount": 10
-         }
+         "message": "example",
+         "requestedFrom": "examplePublicKey"
        }
      }
      ```
 
-2. **Response Sign (Odpowiedź na Podpis)**
+2. **responseSign (Odpowiedź na Podpis)**
 
-   - **Opis:** Obsługuje odpowiedzi na żądania podpisu transakcji.
+   - **Opis:** Obsługuje odpowiedź na zapytanie walidacyjne
    - **Przykład użycia:**
      ```json
      {
        "type": "responseSign",
        "payload": {
-         "isValid": true
+         "signature": "example signature",
+         "responseFrom": "examplePublicKey"
        }
      }
      ```
 
-3. **Connect (Połączenie)**
+3. **connect (Połączenie)**
 
    - **Opis:** Umożliwia węzłowi dołączanie do sieci poprzez nawiązywanie
      połączenia z innymi węzłami.
    - **Przykład użycia:**
+
      ```json
      {
        "type": "connect",
        "payload": {
-         "port": 12345,
-         "publicKey": "0xabcdef"
+         "port": "3000",
+         "publicKey": "examplePublicKey",
+         "withBlockchain": false
        }
      }
      ```
 
-4. **Add Block (Dodanie Bloku)**
+4. **sendBlockchain (Dodanie Bloku)**
+
+- **Opis:** Wysyła blockchain użytkownika, do którego dany node się podłącza
+- **Przykład użycia:**
+
+  ```json
+  {
+    "type": "addBlock",
+    "payload": {
+      "chain": [
+        {
+          "timestamp": "1700594328711",
+          "data": [
+            {
+              "from": "publicKey",
+              "to": "publicKey2",
+              "amount": 123
+            }
+          ],
+          "hash": "07421a8f474c26e90257db7591d83f6118e892443b4f041f2ccedf962931f2a3",
+          "prevHash": "",
+          "nonce": 0
+        }
+      ],
+      "difficulty": 10
+    }
+  }
+  ```
+
+5. **addBlock (Dodanie Bloku)**
+
    - **Opis:** Informuje inne węzły o dodaniu nowego bloku do blockchain.
    - **Przykład użycia:**
+
      ```json
      {
        "type": "addBlock",
        "payload": {
-         "timestamp": 1634567890,
-         "data": {
-           "transactions": [
+         "port": 3000,
+         "publicKey": "123",
+         "block": {
+           "timestamp": "1700594817",
+           "data": [
              {
-               "sender": "0xabcdef",
-               "recipient": "0x123456",
-               "amount": 10
-             },
-             {
-               "sender": "0x123456",
-               "recipient": "0xabcdef",
-               "amount": 5
+               "from": "yy",
+               "to": "xx",
+               "amount": 3123
              }
-           ]
-         },
-         "hash": "0xabcdef123456",
-         "prevHash": "0x123456abcdef",
-         "nonce": 0
+           ],
+           "hash": "123",
+           "prevHash": "345",
+           "nonce": 123
+         }
        }
      }
      ```

@@ -18,6 +18,7 @@ export default class Runner {
   }
 
   async promptForOptions() {
+    console.log('\n')
     console.table({
       'Create wallet': {value: 1},
       'Connect to node': {value: 2},
@@ -25,6 +26,7 @@ export default class Runner {
       'Show wallet': {value: 4},
       'Add block': {value: 5},
     })
+    console.log('\n')
     this.terminal.question('Please input value: ', async value => {
       this.#selectedOption = value
       await this.handleStart()
@@ -48,9 +50,7 @@ export default class Runner {
           break
         }
         this.terminal.question('Enter port: ', port => {
-          this.terminal.question('Enter public key of node: ', publicKey => {
-            this.node.connectToNode(port, publicKey, true)
-          })
+          this.node.connectToNode({port, shouldConnectToBlockchain: true})
         })
 
         break
@@ -79,7 +79,9 @@ export default class Runner {
         this.terminal.question('From: ', from => {
           this.terminal.question('to: ', to => {
             this.terminal.question('amount: ', amount => {
-              const block = new Block(Date.now().toString(), {from, to, amount})
+              const block = new Block(Date.now().toString(), [
+                {from, to, amount},
+              ])
               this.node.blockchain.addBlock(block)
               this.node.sendBlockToPeers(block)
             })
