@@ -28,13 +28,12 @@ export default class Blockchain {
         creatorAddress,
         this.reward,
       )
+
+    const transaction = this.createCoinbaseTransaction(creatorAddress)
+    transaction.sign(this.coinbaseKeyPair)
     this.chain =
       typeof chain === 'undefined'
-        ? [
-            new Block(Date.now().toString(), [
-              this.createCoinbaseTransaction(creatorAddress),
-            ]),
-          ]
+        ? [new Block(Date.now().toString(), [transaction])]
         : chain
   }
 

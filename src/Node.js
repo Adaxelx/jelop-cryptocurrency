@@ -75,7 +75,8 @@ export default class Node {
               new Block(
                 timestamp,
                 transactions?.map(
-                  ({from, to, amount}) => new Transaction(from, to, amount),
+                  ({from, to, amount, signature}) =>
+                    new Transaction(from, to, amount, signature),
                 ),
                 prevHash,
                 nonce,
@@ -104,7 +105,8 @@ export default class Node {
           new Block(
             block.timestamp,
             block.transactions?.map(
-              ({from, to, amount}) => new Transaction(from, to, amount),
+              ({from, to, amount, signature}) =>
+                new Transaction(from, to, amount, signature),
             ),
             block.prevHash,
             block.nonce,
@@ -247,29 +249,3 @@ export default class Node {
     })
   }
 }
-
-// TODO:
-/* 
-Tworzenie tosamości cyfrowej
-    - Tutaj rozumiem utworzenie Node, klucza publicznego i prywatnego
-Przechowywanie kluczy w cyfrowym portfelu:
-    - Trzymanie kluczy(publicznych) innych nodeów w celu możliwości wysyłania im szyfrowanych messageów
-Weryfikacja tożsamości węzła
-    - Rozumiem że tutaj przykładowo będzie wysłana wiadomość, która jest do odkodowania za pomocą publicznego klucza
-    przez wysyłającego. Jeśli zaszyfrowana wiadomość kluczem prywatnym daje się odkodować danym kluczem publicznym to znaczy
-    ze ta osoba jest tym za kogo się podaje
-- Uruchomienie i rejestracja węzła 
-    - Podanie portu innego węzła (oraz jego klicza publicznego (?)), wysłanie mu wiadomości zaszyfrowanej tym kluczem (np swój klucz publiczny), następnie on wysyła ci wiadomość zaszyfrowaną twoim
-    kluczem publicznym (tak żebyś ty go mógł dodać do znanych nodeów)
-
-
-      {
-    type: "connect",
-    payload: {}
-  }
-
-  {
-    type: 'verify',
-   payload: {}
-  }
-*/
