@@ -2,6 +2,7 @@ import readlineSync from 'readline'
 import Wallet from './Wallet.js'
 import Node from './Node.js'
 import Block from './Block.js'
+import Transaction from './Transaction.js'
 export default class Runner {
   #selectedOption
   constructor() {
@@ -13,29 +14,32 @@ export default class Runner {
     this.node = undefined
   }
 
-  async run() {
-    await this.promptForOptions()
+  run() {
+    this.promptForOptions()
+    this.terminal.on('line', input => {
+      this.promptForOptions()
+    })
   }
 
-  async promptForOptions() {
+  promptForOptions() {
     console.log('\n')
     console.table({
       'Create wallet': {value: 1},
       'Connect to node': {value: 2},
       'Validate node': {value: 3},
       'Show wallet': {value: 4},
-      'Add block': {value: 5},
+      'Add transaction': {value: 5},
+      'Show balance': {value: 6},
+      'Show blockchain': {value: 7},
     })
     console.log('\n')
-    this.terminal.question('Please input value: ', async value => {
+    this.terminal.question('Please input value: ', value => {
       this.#selectedOption = value
-      await this.handleStart()
-      await this.promptForOptions()
+      this.handleStart()
     })
   }
 
-  async handleStart() {
-    console.log('You selected: ', this.#selectedOption)
+  handleStart() {
     switch (this.#selectedOption) {
       case '1':
         // upload your wallet
@@ -70,23 +74,46 @@ export default class Runner {
           break
         }
         this.node.wallet.show()
+        break
       }
       case '5': {
         if (!this.node) {
           console.log('You need to have a wallet to add block!')
           break
         }
-        this.terminal.question('From: ', from => {
-          this.terminal.question('to: ', to => {
-            this.terminal.question('amount: ', amount => {
-              const block = new Block(Date.now().toString(), [
-                {from, to, amount},
-              ])
-              this.node.blockchain.addBlock(block)
-              this.node.sendBlockToPeers(block)
+
+        this.terminal.question('to (port): ', to => {
+          this.terminal.question('amount: ', amount => {
+            const transaction = new Transaction(
+              this.node.wallet.publicKey,
+              this.node.knownNodes.find(node => node.port === to).publicKey,
+              Number(amount),
+            )
+            transaction.sign({
+              publicKey: this.node.wallet.publicKey,
+              privateKey: this.node.wallet.getPrivateKey(),
             })
+            this.node.blockchain.addTransaction(transaction)
+            const block = this.node.blockchain.mineTransactions(
+              this.node.wallet.publicKey,
+            )
+            this.node.sendBlockToPeers(block)
           })
         })
+
+        break
+      }
+      case '6': {
+        const balance = this.node.blockchain.getBalance(
+          this.node.wallet.publicKey,
+        )
+        console.log(`Your balance is ${balance}🤡`)
+        break
+      }
+
+      case '7': {
+        console.log(this.node.blockchain.toString())
+        break
       }
       default:
         break

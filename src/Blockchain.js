@@ -1,9 +1,86 @@
 import Block from './Block.js'
-
+import {generateKeyPair, getPublicKeyToHex} from './utils.js'
+import Transaction from './Transaction.js'
 export default class Blockchain {
-  constructor(difficulty = 1, chain = [new Block(Date.now().toString())]) {
-    this.chain = chain
+  constructor(
+    creatorAddress = undefined,
+    difficulty = 1,
+    chain,
+    publicKey,
+    privateKey,
+  ) {
     this.difficulty = difficulty
+    this.transactions = []
+    this.reward = 10 // random value
+    if (publicKey && privateKey) {
+      this.coinbaseKeyPair = {
+        privateKey,
+        publicKey: Buffer.from(publicKey, 'hex'),
+      }
+    } else {
+      const {publicKey, privateKey} = generateKeyPair()
+      this.coinbaseKeyPair = {privateKey, publicKey}
+    }
+
+    this.createCoinbaseTransaction = creatorAddress =>
+      new Transaction(
+        getPublicKeyToHex(this.coinbaseKeyPair.publicKey),
+        creatorAddress,
+        this.reward,
+      )
+    this.chain =
+      typeof chain === 'undefined'
+        ? [
+            new Block(Date.now().toString(), [
+              this.createCoinbaseTransaction(creatorAddress),
+            ]),
+          ]
+        : chain
+  }
+
+  addTransaction(transaction) {
+    if (transaction.isValid(transaction, this)) {
+      this.transactions.push(transaction)
+    }
+  }
+
+  mineTransactions(rewardAddress) {
+    // Create a COINSBASE transaction for reward.
+    const rewardTransaction = this.createCoinbaseTransaction(rewardAddress)
+    rewardTransaction.sign(this.coinbaseKeyPair)
+
+    // We will add the reward transaction into the pool.
+    const block = new Block(Date.now().toString(), [
+      rewardTransaction,
+      ...this.transactions,
+    ])
+
+    this.addBlock(block)
+
+    // Right now, we are just going assume the "from" address is something like this,
+    // we will get back to this later in the next part of the article.
+    this.transactions = []
+    return block
+  }
+
+  getBalance(address) {
+    let balance = 0
+
+    this.chain.forEach(block => {
+      block.transactions.forEach(transaction => {
+        // Because if you are the sender, you are sending money away, so your balance will be decremented.
+        if (transaction.from === address) {
+          balance -= transaction.amount
+        }
+
+        // But if you are the receiver, you are receiving money, so your balance will be incremented.
+        if (transaction.to === address) {
+          balance += transaction.amount
+        }
+      })
+    })
+
+    return balance
   }
 
   getLastBlock() {
@@ -15,7 +92,6 @@ export default class Blockchain {
     block.mine(this.difficulty)
 
     this.chain.push(Object.freeze(block))
-    console.log(this.toString())
   }
 
   connectToLastBlock(block) {
@@ -41,9 +117,9 @@ export default class Blockchain {
       const currentBlock = chain[currentIndex]
       if (
         currentBlock.hash !== currentBlock.getHash() ||
-        prevBlock.hash !== currentBlock.prevHash
+        prevBlock.hash !== currentBlock.prevHash ||
+        !currentBlock.hasValidTransactions(blockchain)
       ) {
-        console.error('❌ validtaion not passed!')
         return false
       }
     }

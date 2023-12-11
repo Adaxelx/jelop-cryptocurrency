@@ -8,6 +8,8 @@ import crypto, {
 import WebSocket, {WebSocketServer} from 'ws'
 import Blockchain from './Blockchain.js'
 import Block from './Block.js'
+import Transaction from './Transaction.js'
+import {getPublicKeyToHex} from './utils.js'
 
 const P2P_PORT = process.env.P2P_PORT || '3000'
 
@@ -20,7 +22,7 @@ export default class Node {
     this.wallet = wallet
     this.knownNodes = []
     this.#validationMessages = {}
-    this.blockchain = new Blockchain()
+    this.blockchain = new Blockchain(this.wallet.publicKey)
   }
 
   run() {
@@ -38,7 +40,6 @@ export default class Node {
       const parsedMessage = JSON.parse(message)
       if (parsedMessage.type === 'requestSign') {
         //handle validation
-        console.log('request')
         this.responseToValidation(parsedMessage.payload)
         return
       } else if (parsedMessage.type === 'responseSign') {
@@ -67,8 +68,21 @@ export default class Node {
         const {payload: data} = parsedMessage
 
         this.blockchain = new Blockchain(
+          undefined,
           data.blockchain.difficulty,
-          data.blockchain.chain,
+          data.blockchain.chain.map(
+            ({timestamp, transactions, prevHash, nonce}) =>
+              new Block(
+                timestamp,
+                transactions?.map(
+                  ({from, to, amount}) => new Transaction(from, to, amount),
+                ),
+                prevHash,
+                nonce,
+              ),
+          ),
+          data.blockchain.coinbaseKeyPair.publicKey,
+          data.blockchain.coinbaseKeyPair.privateKey,
         )
 
         return
@@ -87,7 +101,14 @@ export default class Node {
         }
 
         this.blockchain.syncBlockchain(
-          new Block(block.timestamp, block.data, block.prevHash, block.nonce),
+          new Block(
+            block.timestamp,
+            block.transactions?.map(
+              ({from, to, amount}) => new Transaction(from, to, amount),
+            ),
+            block.prevHash,
+            block.nonce,
+          ),
         )
         console.log('added block to blockchain, blockchain is synchronized ⛓️')
         return
@@ -124,7 +145,15 @@ export default class Node {
             payload: {
               port: this.port,
               publicKey: this.wallet.publicKey,
-              blockchain: this.blockchain,
+              blockchain: {
+                ...this.blockchain,
+                coinbaseKeyPair: {
+                  ...this.blockchain.coinbaseKeyPair,
+                  publicKey: getPublicKeyToHex(
+                    this.blockchain.coinbaseKeyPair.publicKey,
+                  ),
+                },
+              },
             },
             type: 'sendBlockchain',
           }),

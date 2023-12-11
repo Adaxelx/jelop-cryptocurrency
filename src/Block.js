@@ -3,17 +3,26 @@ import {createHash} from 'crypto'
 const SHA256 = message => createHash('sha256').update(message).digest('hex')
 
 export default class Block {
-  constructor(timestamp = '', data = [], prevHash = '', nonce = 0) {
+  constructor(timestamp = '', transactions = [], prevHash = '', nonce = 0) {
     this.timestamp = timestamp
-    this.data = data
+    this.transactions = transactions
     this.hash = this.getHash()
     this.prevHash = prevHash
     this.nonce = nonce
   }
 
+  hasValidTransactions(chain) {
+    return this.transactions.every(transaction =>
+      transaction.isValid(transaction, chain),
+    )
+  }
+
   getHash() {
     return SHA256(
-      JSON.stringify(this.data) + this.nonce + this.prevHash + this.timestamp,
+      JSON.stringify(this.transactions) +
+        this.nonce +
+        this.prevHash +
+        this.timestamp,
     )
   }
 

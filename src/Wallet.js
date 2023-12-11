@@ -1,5 +1,5 @@
 import {generateKeyPairSync} from 'crypto'
-
+import {generateKeyPair} from './utils.js'
 class Wallet {
   #privateKey
   constructor(port, publicKey, privateKey) {
@@ -9,17 +9,7 @@ class Wallet {
       return
     }
     const {privateKey: generatedPrivateKey, publicKey: generatedPublicKey} =
-      generateKeyPairSync('ec', {
-        namedCurve: 'sect239k1',
-        publicKeyEncoding: {
-          type: 'spki',
-          format: 'der',
-        },
-        privateKeyEncoding: {
-          type: 'pkcs8',
-          format: 'pem',
-        },
-      })
+      generateKeyPair()
     this.publicKey = getPublicKeyToHex(generatedPublicKey)
     this.#privateKey = generatedPrivateKey
 
