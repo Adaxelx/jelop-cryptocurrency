@@ -89,7 +89,6 @@ export default class Node {
         this.blockchain.syncBlockchain(
           new Block(block.timestamp, block.data, block.prevHash, block.nonce),
         )
-        this.blockchain.isValid()
         console.log('added block to blockchain, blockchain is synchronized ⛓️')
         return
       }

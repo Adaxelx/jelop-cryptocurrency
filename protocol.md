@@ -1,4 +1,4 @@
-# Protokół Komunikacyjny Blockchain
+# Protokół Komunikacyjny
 
 ## Opis
 

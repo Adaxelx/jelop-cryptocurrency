@@ -23,7 +23,6 @@ export default class Blockchain {
     block.hash = block.getHash()
   }
 
-  // TODO
   syncBlockchain(block) {
     this.connectToLastBlock(block)
     this.chain.push(Object.freeze(block))
