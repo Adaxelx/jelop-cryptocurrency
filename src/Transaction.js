@@ -16,9 +16,7 @@ export default class Transaction {
   }
 
   sign(keyPair) {
-    // Check if the public key matches the "from" address of the transaction
     if (getPublicKeyToHex(keyPair.publicKey) === this.from) {
-      // Sign the transaction
       const sign = createSign('SHA256')
       sign.write(this.from + this.to + this.amount)
       sign.end()
@@ -36,7 +34,7 @@ export default class Transaction {
       verify.verify(
         createPublicKey({
           key: Buffer.from(tx.from, 'hex'),
-          format: 'der', // Use DER encoding for elliptic curve keys
+          format: 'der',
           type: 'spki',
           namedCurve: 'sect239k1',
         }),

@@ -31,6 +31,7 @@ export default class Runner {
       'Add transaction': {value: 5},
       'Show balance': {value: 6},
       'Show blockchain': {value: 7},
+      'Mine transactions': {value: 8},
     })
     console.log('\n')
     this.terminal.question('Please input value: ', value => {
@@ -84,6 +85,17 @@ export default class Runner {
 
         this.terminal.question('to (port): ', to => {
           this.terminal.question('amount: ', amount => {
+            const balance = this.node.blockchain.getBalance(
+              this.node.wallet.publicKey,
+            )
+            if (balance < Number(amount)) {
+              console.log('You do not have enough 🤡s!')
+              return
+            }
+            if (this.node.port === to) {
+              console.log('You cannot send to yourself!')
+              return
+            }
             const transaction = new Transaction(
               this.node.wallet.publicKey,
               this.node.knownNodes.find(node => node.port === to).publicKey,
@@ -94,16 +106,18 @@ export default class Runner {
               privateKey: this.node.wallet.getPrivateKey(),
             })
             this.node.blockchain.addTransaction(transaction)
-            const block = this.node.blockchain.mineTransactions(
-              this.node.wallet.publicKey,
-            )
-            this.node.sendBlockToPeers(block)
+            this.node.sendTransactionToPeers(transaction)
           })
         })
 
         break
       }
       case '6': {
+        if (!this?.node?.blockchain) {
+          console.log('You need to have a blockchain to show balance!')
+          break
+        }
+
         const balance = this.node.blockchain.getBalance(
           this.node.wallet.publicKey,
         )
@@ -112,7 +126,54 @@ export default class Runner {
       }
 
       case '7': {
+        if (!this?.node?.blockchain) {
+          console.log('You need to have a blockchain to show it!')
+          break
+        }
+
         console.log(this.node.blockchain.toString())
+        break
+      }
+      case '8': {
+        // if (!this?.node?.blockchain) {
+        //   console.log('You need to have a blockchain to mine it!')
+        //   break
+        // }
+        this.node.blockchain.printListOfTransactions()
+        this.terminal.question(
+          'Select transactions (pass transaction number separated with comma)',
+          value => {
+            if (typeof value !== 'string') {
+              console.log('Invalid input!')
+              return
+            }
+            const transactionIds = value.split(',').map(Number)
+            if (transactionIds.some(transaction => isNaN(transaction))) {
+              console.log('Invalid input!')
+              return
+            }
+            if (
+              transactionIds.some(
+                transaction =>
+                  transaction < 1 ||
+                  transaction > this.node.blockchain.transactions.length,
+              )
+            ) {
+              console.log(
+                `Invalid transaction number! - should be in range ${1} - ${
+                  this.node.blockchain.transactions.length
+                }`,
+              )
+              return
+            }
+            const block = this.node.blockchain.mineTransactions(
+              this.node.wallet.publicKey,
+              transactionIds,
+            )
+            this.node.sendBlockToPeers(block)
+          },
+        )
+
         break
       }
       default:

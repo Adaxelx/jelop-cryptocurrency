@@ -114,7 +114,28 @@ export default class Node {
         )
         console.log('added block to blockchain, blockchain is synchronized ⛓️')
         return
+      } else if (parsedMessage.type === 'addTransaction') {
+        const {
+          payload: {port, transaction, publicKey},
+        } = parsedMessage
+        if (
+          !this.knownNodes.some(
+            node => node.port == port && node.publicKey === publicKey,
+          )
+        ) {
+          return
+        }
+        this.blockchain.addTransaction(
+          new Transaction(
+            transaction.from,
+            transaction.to,
+            transaction.amount,
+            transaction.signature,
+          ),
+        )
+        return
       }
+
       throw new Error('Unhandled message')
     })
   }
@@ -232,6 +253,21 @@ export default class Node {
     } else {
       console.log('Verify failure')
     }
+  }
+
+  sendTransactionToPeers(transaction) {
+    this.knownNodes.forEach(({socket}) => {
+      socket.send(
+        JSON.stringify({
+          type: 'addTransaction',
+          payload: {
+            port: this.port,
+            publicKey: this.wallet.publicKey,
+            transaction,
+          },
+        }),
+      )
+    })
   }
 
   sendBlockToPeers(block) {

@@ -33,7 +33,6 @@ P2P_PORT=300X npm run dev
 
 - Obsługa forków oraz orphan block
 - Tworzenie forków przez złośliwego node
-- Rozsyłanie transakcji oraz candidate block z prawdopodobieństwem
 
 ## Sprawozdanie końcowe (10p)
 

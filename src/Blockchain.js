@@ -4,7 +4,7 @@ import Transaction from './Transaction.js'
 export default class Blockchain {
   constructor(
     creatorAddress = undefined,
-    difficulty = 1,
+    difficulty = 5,
     chain,
     publicKey,
     privateKey,
@@ -43,22 +43,33 @@ export default class Blockchain {
     }
   }
 
-  mineTransactions(rewardAddress) {
+  mineTransactions(rewardAddress, transactionIds) {
     // Create a COINSBASE transaction for reward.
+    if (
+      this.transactions.length === 0 ||
+      this.transactions.length < transactionIds.length
+    ) {
+      console.log('No transactions to mine!')
+      return
+    }
+    const transactionsToMine = transactionIds.map(
+      transactionId => this.transactions[transactionId - 1],
+    )
+
     const rewardTransaction = this.createCoinbaseTransaction(rewardAddress)
     rewardTransaction.sign(this.coinbaseKeyPair)
 
     // We will add the reward transaction into the pool.
     const block = new Block(Date.now().toString(), [
       rewardTransaction,
-      ...this.transactions,
+      ...transactionsToMine,
     ])
 
     this.addBlock(block)
 
-    // Right now, we are just going assume the "from" address is something like this,
-    // we will get back to this later in the next part of the article.
-    this.transactions = []
+    this.transactions = this.transactions.filter(transaction =>
+      transactionsToMine.every(tx => tx.signature !== transaction.signature),
+    )
     return block
   }
 
@@ -82,23 +93,75 @@ export default class Blockchain {
     return balance
   }
 
+  // Format transactions into a list so that it have all data of transactions preceded with number from 1 to N
+  printListOfTransactions() {
+    this.transactions.forEach((transaction, index) => {
+      console.log(`[${index + 1}]. ${transaction.toString()}`)
+    })
+  }
+
   getLastBlock() {
     return this.chain[this.chain.length - 1]
+  }
+
+  isNotCoinbaseTransaction = transaction => {
+    return (
+      transaction.from !== getPublicKeyToHex(this.coinbaseKeyPair.publicKey)
+    )
   }
 
   addBlock(block) {
     this.connectToLastBlock(block)
     block.mine(this.difficulty)
+    block.timestamp = Date.now().toString()
 
     this.chain.push(Object.freeze(block))
   }
 
   connectToLastBlock(block) {
-    block.prevHash = this.getLastBlock().hash
+    this.connectToNBlock(block)
+  }
+
+  connectToNBlock(block, blockToConnect = this.getLastBlock()) {
+    block.prevHash = blockToConnect.hash
     block.hash = block.getHash()
   }
 
+  getIndexOfBlockToConnect(block) {
+    for (let i = this.chain.length - 1; i >= 0; i--) {
+      if (this.chain[i].hash === block.prevHash) {
+        return i
+      }
+    }
+  }
+
   syncBlockchain(block) {
+    const index = this.getIndexOfBlockToConnect(block)
+    if (typeof index === 'undefined') {
+      console.log('Invalid block - rejected')
+      return
+    }
+    if (index !== this.chain.length - 1) {
+      const blockToBeReplaced = this.chain[index + 1]
+      if (blockToBeReplaced.timestamp < block.timestamp) {
+        console.log('This block is older than the block you have - rejected')
+        return
+      }
+      const blocksToBeReplaced = this.chain.slice(index + 1)
+      this.transactions = [
+        ...this.transactions,
+        ...blocksToBeReplaced
+          .flatMap(block => block.transactions)
+          .filter(this.isNotCoinbaseTransaction),
+      ].filter(
+        transaction =>
+          !block.transactions.some(
+            tx => tx.signature === transaction.signature,
+          ),
+      )
+
+      this.chain = this.chain.slice(0, index + 1)
+    }
     this.connectToLastBlock(block)
     this.chain.push(Object.freeze(block))
     if (!this.isValid()) {
@@ -116,6 +179,8 @@ export default class Blockchain {
       const currentBlock = chain[currentIndex]
       if (
         currentBlock.hash !== currentBlock.getHash() ||
+        currentBlock.getHash().slice(0, this.difficulty + 1) ===
+          new Array(this.difficulty).fill(0).join('') ||
         prevBlock.hash !== currentBlock.prevHash ||
         !currentBlock.hasValidTransactions(blockchain)
       ) {
@@ -128,6 +193,7 @@ export default class Blockchain {
   }
 
   toString() {
-    return JSON.stringify(this, null, 2)
+    const {coinbaseKeyPair, ...blockchain} = this
+    return JSON.stringify(blockchain, null, 2)
   }
 }

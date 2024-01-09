@@ -29,7 +29,7 @@ export default class Block {
   // Bitcoin style mining
   mine(difficulty) {
     console.log('⛏️mining...')
-    while (!this.hash.startsWith(new Array(difficulty + 1).fill(0).join(''))) {
+    while (!this.hash.startsWith(new Array(difficulty).fill(0).join(''))) {
       this.nonce++
       this.hash = this.getHash()
     }
