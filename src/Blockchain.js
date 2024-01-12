@@ -9,7 +9,7 @@ export default class Blockchain {
     publicKey,
     privateKey,
   ) {
-    this.difficulty = difficulty
+    this.difficulty = 1
     this.transactions = []
     this.reward = 10 // random value
     if (publicKey && privateKey) {
@@ -164,6 +164,7 @@ export default class Blockchain {
     }
     this.connectToLastBlock(block)
     this.chain.push(Object.freeze(block))
+    console.log(this.isValid())
     if (!this.isValid()) {
       this.chain.pop()
     }
@@ -177,13 +178,15 @@ export default class Blockchain {
       const isFirst = Number(currentIndex) === 0
       const prevBlock = isFirst ? INITIAL_BLOCK : chain[currentIndex - 1]
       const currentBlock = chain[currentIndex]
+
       if (
         currentBlock.hash !== currentBlock.getHash() ||
-        currentBlock.getHash().slice(0, this.difficulty + 1) ===
+        currentBlock.getHash().slice(0, this.difficulty) !==
           new Array(this.difficulty).fill(0).join('') ||
         prevBlock.hash !== currentBlock.prevHash ||
         !currentBlock.hasValidTransactions(blockchain)
       ) {
+        console.log('❌ validtaion failed!')
         return false
       }
     }

@@ -25,6 +25,9 @@ export default class Runner {
     console.log('\n')
     console.table({
       'Create wallet': {value: 1},
+      'Save wallet': {value: 9},
+      'Load wallet': {value: 10},
+      'Show connected': {value: 11},
       'Connect to node': {value: 2},
       'Validate node': {value: 3},
       'Show wallet': {value: 4},
@@ -47,7 +50,36 @@ export default class Runner {
         const wallet = new Wallet()
         this.node = new Node(wallet)
         this.node.run()
-
+        break
+      case '9':
+        if (!this.node) {
+          console.log('You need to have a wallet!')
+          break
+        }
+        // To save the wallet:
+        this.terminal.question('Enter password: ', password => {
+          this.node.wallet.saveToFile('myWallet.dat', password)
+        })
+        break
+      case '10':
+        // To save the wallet:
+        this.terminal.question('Enter password: ', password => {
+          const loadedWallet = Wallet.loadFromFile('myWallet.dat', password)
+          if (!loadedWallet) {
+            console.log('hasło niepoprawne')
+            return
+          }
+          console.log('hasło poprawne')
+          this.node = new Node(loadedWallet)
+          this.node.run()
+        })
+        break
+      case '11':
+        if (!this.node) {
+          console.log('You need to have a wallet to show connected nodes!')
+          break
+        }
+        console.table(this.node.knownNodes.map(({port}) => ({port})))
         break
       case '2':
         if (!this.node) {
@@ -59,7 +91,7 @@ export default class Runner {
         })
 
         break
-      case '3': {
+      case '3':
         if (!this.node) {
           console.log('You need to create wallet first to validate any node!')
           break
@@ -68,7 +100,7 @@ export default class Runner {
           const node = this.node.knownNodes.find(node => node.port === port)
           this.node.requestValidation(node)
         })
-      }
+        break
       case '4': {
         if (!this.node) {
           console.log('You need to have a wallet to show it!')
@@ -135,10 +167,10 @@ export default class Runner {
         break
       }
       case '8': {
-        // if (!this?.node?.blockchain) {
-        //   console.log('You need to have a blockchain to mine it!')
-        //   break
-        // }
+        if (!this?.node?.blockchain) {
+          console.log('You need to have a blockchain to mine it!')
+          break
+        }
         this.node.blockchain.printListOfTransactions()
         this.terminal.question(
           'Select transactions (pass transaction number separated with comma)',

@@ -1,5 +1,5 @@
 import {generateKeyPairSync} from 'crypto'
-import {generateKeyPair} from './utils.js'
+import {generateKeyPair, encryptAndSave, readAndDecrypt} from './utils.js'
 class Wallet {
   #privateKey
   constructor(port, publicKey, privateKey) {
@@ -26,6 +26,24 @@ class Wallet {
       'Public key': {value: this.publicKey},
       'Private key': {value: this.#privateKey},
     })
+  }
+
+  saveToFile(filePath, password) {
+    const data = {
+      publicKey: this.publicKey,
+      privateKey: this.getPrivateKey(),
+    }
+    encryptAndSave(data, password, filePath)
+  }
+
+  static loadFromFile(filePath, password) {
+    try {
+      const data = readAndDecrypt(filePath, password)
+      return new Wallet(null, data.publicKey, data.privateKey)
+    } catch (e) {
+      console.log('Error: Invalid password or file path')
+      return
+    }
   }
 }
 

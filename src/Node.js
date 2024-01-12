@@ -62,7 +62,6 @@ export default class Node {
           shouldConnectToBlockchain: withBlockchain,
         })
 
-        console.log(this.knownNodes.map(({socket, ...data}) => data))
         return
       } else if (parsedMessage.type === 'sendBlockchain') {
         const {payload: data} = parsedMessage
@@ -207,6 +206,15 @@ export default class Node {
         payload: {message, requestedFrom: this.wallet.publicKey},
       }),
     )
+    setTimeout(() => {
+      if (this.#validationMessages[node.publicKey] !== undefined) {
+        console.log('Validation failed')
+        this.knownNodes = this.knownNodes.filter(
+          ({publicKey}) => publicKey !== node.publicKey,
+        )
+        this.#validationMessages[node.publicKey] = undefined
+      }
+    }, 5000)
   }
 
   responseToValidation(data) {
@@ -250,6 +258,7 @@ export default class Node {
       )
     ) {
       console.log('Verify success')
+      this.#validationMessages[responseFrom] = undefined
     } else {
       console.log('Verify failure')
     }

@@ -43,12 +43,19 @@ Sprawozdanie końcowe z projektu w formie pliku PDF powinno zostać umieszczone 
 - przedstawienie algorytmów kryptograficznych zastosowanych w projekcie
   (długości kluczy, implementacje, itp.) oraz uzasadnienia dla takiego wyboru,
 - wyniki analiz bezpieczeństwa i symulacji jego zachowania podczas różnych
-  zaburzeń (ataków);
-- przykładowe scenariusze:
-- nieuczciwy węzeł,
-- grupa węzłów działająca w zmowie,
+  zaburzeń (ataków)
+
+### przykładowe scenariusze:
+
 - awaria łącza danych,
+- zgubienie hasła do klucza prywatnego
+- awaria danych w jednym z węzłów,
+- nieuczciwy węzeł,
+
+- grupa węzłów działająca w zmowie,
 - ogromna dysproporcja pomiędzy zasobami węzłów,
 - skuteczny atak na jeden algorytm kryptograficzny,
-- awaria danych w jednym z węzłów,
-- zgubienie hasła do klucza prywatnego
+
+- odpalamy 2 nody
+- łączymy je ze sobą
+- psujemy algorytm kopania
