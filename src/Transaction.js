@@ -1,11 +1,5 @@
 import {getPublicKeyToHex} from './utils.js'
-import crypto, {
-  createHash,
-  createSign,
-  createVerify,
-  createSecretKey,
-  createPublicKey,
-} from 'crypto'
+import crypto, {createSign, createVerify, createPublicKey} from 'crypto'
 
 export default class Transaction {
   constructor(from, to, amount, signature) {

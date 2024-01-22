@@ -13,7 +13,7 @@ export function getPublicKeyToHex(publicKey) {
 
 export function generateKeyPair() {
   return generateKeyPairSync('ec', {
-    namedCurve: 'sect239k1',
+    namedCurve: 'secp256k1',
     publicKeyEncoding: {
       type: 'spki',
       format: 'der',
